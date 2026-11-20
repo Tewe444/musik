@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111114">
+  <title>Noten-Raum 3D – Tewe444</title>
+  <link rel="stylesheet" href="style.css?v=10">
+</head>
+<body class="mode-menu">
+  <div id="stage">
+    <div class="hud" id="coins">🪙 0</div>
+    <div class="hud" id="msg"></div>
+    <div class="hud" id="floorCount"></div>
+    <div class="hud" id="cross"></div>
+    <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+    <button id="menuBtn" type="button" data-t="menu">☰ Menü</button>
+    <div id="tutorial" aria-live="polite"></div>
+    <div id="toast" role="status"></div>
+    <div id="story">
+      <div id="storyFade"></div>
+      <div id="storyCaption" aria-live="polite"></div>
+      <div id="storyHint" data-t="tapNext">Tippen = weiter</div>
+      <button id="storySkip" type="button" data-t="skip">Überspringen ›</button>
+    </div>
+    <div id="menuScreen">
+      <div class="menuBox">
+        <h1>Noten-Raum 3D</h1>
+        <p class="sub" data-t="sub">Lege Noten auf den Tisch – zusammen genau 4 Schläge!</p>
+        <div id="menuMain">
+          <button id="btnContinue" class="menuBtn primary" type="button" data-t="continue">Weiterspielen</button>
+          <button id="btnNew" class="menuBtn" type="button" data-t="newGame">Neues Spiel</button>
+          <div class="menuRow">
+            <button id="btnStory" class="menuBtn small" type="button" data-t="storyBtn">Geschichte</button>
+            <button id="btnTutorial" class="menuBtn small" type="button" data-t="tutorial">Tutorial</button>
+          </div>
+          <div id="menuInfo"></div>
+          <div class="menuSettings">
+            <button id="btnLang" class="pill" type="button">Deutsch</button>
+            <button id="btnMusic" class="pill" type="button">Musik</button>
+            <button id="btnSfx" class="pill" type="button">Soundeffekte</button>
+            <button id="btnVoice" class="pill" type="button">Stimme</button>
+            <button id="btnAfk" class="pill" type="button">Videos bei AFK</button>
+            <button id="btnFull" class="pill" type="button">Vollbild</button>
+          </div>
+        </div>
+        <div id="menuConfirm" hidden>
+          <p id="confirmText" class="menuText"></p>
+          <button id="btnYes" class="menuBtn danger" type="button" data-t="yes">Ja, neu starten</button>
+          <button id="btnNo" class="menuBtn" type="button" data-t="no">Abbrechen</button>
+        </div>
+        <div id="menuChoose" hidden>
+          <p class="menuText" data-t="chooseTitle">Wie möchtest du starten?</p>
+          <button id="btnWatch" class="menuBtn primary" type="button" data-t="watchStory">🌙 Geschichte ansehen</button>
+          <button id="btnPlayNow" class="menuBtn" type="button" data-t="playNow">▶ Gleich selbst spielen</button>
+        </div>
+        <div class="menuCredits" data-t="credits"></div>
+      </div>
+    </div>
+    <div id="tutDone" role="dialog" aria-modal="true">
+      <div class="tutDoneBox">
+        <div class="tutDoneStar"></div>
+        <h2 id="tutDoneTitle">Tutorial geschafft!</h2>
+        <p id="tutDoneText"></p>
+        <button id="tutDoneBtn" class="menuBtn primary" type="button">Weiter zum Spiel ▶</button>
+      </div>
+    </div>
+    <button id="bookBack" type="button" hidden data-t="back">← Zurück</button>
+    <div id="touchControls" aria-hidden="false">
+      <div id="joystickZone"><div id="joystickBase" aria-label="Bewegungs-Joystick"><div id="joystickKnob"></div></div></div>
+      <button id="actionTouch" type="button" aria-label="Nehmen oder Werfen">Nehmen</button>
+      <button id="jumpTouch" type="button" aria-label="Springen">↑</button>
+    </div>
+    <input id="musicFolderInput" type="file" accept=".mp3,audio/mpeg" multiple webkitdirectory directory hidden>
+    <input id="musicFilesInput" type="file" accept=".mp3,audio/mpeg" multiple hidden>
+  </div>
+  <div id="afk"><video id="afkVideo" playsinline preload="none"></video></div>
+  <audio id="music" preload="auto"></audio>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="models.js?v=10"></script>
+  <script src="lang.js?v=10"></script>
+  <script src="sound.js?v=10"></script>
+  <script src="game.js?v=10"></script>
+</body>
+</html>
