@@ -1,0 +1,85 @@
+:root{--bg:#111114;--fg:#fff;--ok:#69db7c;--bad:#ff8787;--gold:#ffd43b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+#stage{position:relative;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none}
+#stage canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+#stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,.78) 100%)}
+#msg,#floorCount,#hint,#hold{display:none!important}
+#cross{left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border:2px solid rgba(255,255,255,.8);border-radius:50%;z-index:3}
+.feedback{display:none;position:absolute;z-index:8;left:50%;top:18px;transform:translateX(-50%);width:min(90vw,520px);padding:13px 20px;border-radius:14px;text-align:center;font-weight:750;font-size:clamp(16px,2.2vw,22px);line-height:1.3;color:#fff;background:rgba(22,23,25,.94);border:2px solid rgba(255,255,255,.25);box-shadow:0 8px 30px rgba(0,0,0,.5);pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.feedback.good{display:block;border-color:#63d77c;background:rgba(20,74,37,.96)}
+.feedback.bad{display:block;border-color:#ff7777;background:rgba(92,24,27,.97)}
+#bookBack{display:none;position:absolute;z-index:12;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:11px 17px;background:rgba(30,24,20,.94);color:#fff;font-weight:700;font-size:16px;box-shadow:0 5px 18px rgba(0,0,0,.38);touch-action:manipulation;cursor:pointer}
+#bookBack:not([hidden]){display:block}
+#touchControls{display:none;position:absolute;inset:0;z-index:40;pointer-events:none;visibility:visible}
+#joystickBase{position:absolute;left:max(22px,env(safe-area-inset-left));bottom:max(24px,env(safe-area-inset-bottom));width:142px;height:142px;border-radius:50%;border:3px solid rgba(255,255,255,.22);background:radial-gradient(circle,rgba(255,255,255,.10) 0 34%,rgba(8,9,12,.48) 36% 100%);box-shadow:inset 0 2px 14px rgba(0,0,0,.5),0 5px 18px rgba(0,0,0,.3);pointer-events:auto;touch-action:none;user-select:none}
+#joystickBase::before{content:"";position:absolute;inset:12px;border:1px solid rgba(255,255,255,.12);border-radius:50%}
+#joystickKnob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;border:2px solid rgba(255,255,255,.48);background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.72),rgba(190,196,205,.45) 34%,rgba(45,49,58,.86) 100%);box-shadow:0 4px 12px rgba(0,0,0,.45);transform:translate(0,0);will-change:transform}
+#jumpTouch{position:absolute;right:max(25px,env(safe-area-inset-right));bottom:max(42px,env(safe-area-inset-bottom));width:82px;height:82px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:rgba(35,38,44,.72);color:#fff;font-size:36px;font-weight:800;box-shadow:0 5px 18px rgba(0,0,0,.38);pointer-events:auto;touch-action:none;user-select:none}
+#jumpTouch:active{background:rgba(255,255,255,.32);transform:scale(.96)}
+body.touch-device #touchControls{display:block!important;visibility:visible!important}
+body.book-open #touchControls{display:none!important}
+/* Manche Mobilbrowser melden maxTouchPoints nicht zuverlässig. Die CSS-Medienabfragen
+   sorgen deshalb zusätzlich dafür, dass der Joystick auf echten Touchscreens sichtbar ist. */
+@media (pointer:coarse), (any-pointer:coarse), (hover:none){
+  #touchControls{display:block!important;visibility:visible!important}
+  body.book-open #touchControls{display:none!important}
+}
+body.touch-device #cross{opacity:.45}
+button,input{-webkit-tap-highlight-color:transparent}
+@media (max-width:420px){#joystickBase{width:126px;height:126px}#joystickKnob{width:52px;height:52px;margin:-26px 0 0 -26px}#jumpTouch{width:74px;height:74px;font-size:32px}}
+@media (orientation:landscape) and (pointer:coarse){#joystickBase{width:126px;height:126px;bottom:16px}#jumpTouch{bottom:28px}}
+
+/* Touch controls stay above the 3D canvas and the vignette overlay. */
+#joystickBase,#jumpTouch{z-index:41;display:block;visibility:visible;}
+#touchControls #joystickBase,#touchControls #jumpTouch{pointer-events:auto;}
+
+/* ---- Bedrock-Stil Joystick ---- */
+#joystickZone{position:absolute;left:0;bottom:0;width:250px;height:250px;pointer-events:auto;touch-action:none;z-index:41;-webkit-touch-callout:none}
+#joystickBase{left:max(22px,env(safe-area-inset-left))!important;bottom:max(24px,env(safe-area-inset-bottom))!important;border:3px solid rgba(255,255,255,.38)!important;background:rgba(20,20,24,.30)!important;box-shadow:none!important;pointer-events:none!important}
+#joystickBase::before{border:2px solid rgba(255,255,255,.14)!important}
+#joystickKnob{border:2px solid rgba(255,255,255,.7)!important;background:rgba(235,235,240,.50)!important;box-shadow:none!important}
+#joystickBase.sprint{border-color:rgba(255,212,59,.9)!important}
+#joystickBase.sprint #joystickKnob{background:rgba(255,212,59,.7)!important;border-color:#ffd43b!important}
+#actionTouch{position:absolute;right:max(25px,env(safe-area-inset-right));bottom:150px;min-width:96px;height:64px;padding:0 18px;border-radius:32px;border:2px solid rgba(255,255,255,.4);background:rgba(35,38,44,.72);color:#fff;font-size:18px;font-weight:800;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;z-index:41}
+#actionTouch.holding{background:rgba(165,31,39,.85);border-color:#ffb3b3}
+#actionTouch:active{transform:scale(.96)}
+@media (max-width:420px){#joystickZone{width:210px;height:210px}}
+@media (orientation:landscape) and (pointer:coarse){#actionTouch{bottom:118px}#joystickZone{height:200px}}
+#touchControls,#touchControls *{-webkit-touch-callout:none}
+
+/* ---- Menü, Coins, Zeit, Tutorial, Shop-Hinweis ---- */
+.feedback{top:48px}
+#coins{display:none;position:absolute;right:max(14px,env(safe-area-inset-right));top:12px;z-index:6;padding:7px 16px;border-radius:999px;background:rgba(0,0,0,.5);border:2px solid rgba(255,212,59,.6);color:#ffd43b;font-size:20px;font-weight:800;pointer-events:none}
+body.mode-game #coins{display:block}
+body.book-open #coins{display:none!important}
+#timer{display:none;position:absolute;left:50%;top:12px;transform:translateX(-50%);width:min(52vw,320px);z-index:6;pointer-events:none;text-align:center;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 3px #000}
+#timerTrack{margin-top:3px;height:8px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden}
+#timerBar{height:100%;width:100%;background:#ffd43b;border-radius:6px}
+body.mode-game #timer{display:block}
+#menuBtn{display:none;position:absolute;left:max(12px,env(safe-area-inset-left));top:12px;z-index:20;padding:9px 14px;border-radius:12px;border:2px solid rgba(255,255,255,.35);background:rgba(20,22,28,.7);color:#fff;font-size:15px;font-weight:700}
+body.mode-tutorial #menuBtn,body.mode-game #menuBtn{display:block}
+body.book-open #menuBtn{display:none!important}
+#tutorial{display:none;position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));width:min(340px,42vw);padding:14px 16px;border-radius:16px;background:rgba(18,20,26,.88);border:2px solid rgba(255,212,59,.55);color:#fff;z-index:15;pointer-events:none;font-size:15px;line-height:1.4;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+body.mode-tutorial #tutorial{display:block}
+body.book-open #tutorial{display:none!important}
+#tutorial.bad{border-color:#ff7777}
+.tutTitle{font-weight:800;color:#ffd43b;margin-bottom:6px}
+.tutCheat{margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.2);font-size:12px;opacity:.75}
+#toast{position:absolute;left:50%;bottom:max(26px,env(safe-area-inset-bottom));transform:translateX(-50%);max-width:min(80vw,460px);padding:11px 18px;border-radius:14px;background:rgba(20,22,28,.92);border:2px solid rgba(255,255,255,.3);color:#fff;font-weight:700;text-align:center;z-index:30;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.show{opacity:1}
+#menuScreen{display:none;position:absolute;inset:0;z-index:60;align-items:center;justify-content:center;background:rgba(5,5,12,.55);backdrop-filter:blur(3px)}
+body.mode-menu #menuScreen{display:flex}
+.menuBox{width:min(92vw,420px);padding:28px 24px;border-radius:22px;background:rgba(18,20,28,.9);border:2px solid rgba(255,212,59,.5);text-align:center;color:#fff;box-shadow:0 14px 50px rgba(0,0,0,.6)}
+.menuBox h1{margin:0 0 6px;font-size:clamp(28px,6vw,40px);color:#ffd43b}
+.menuBox .sub{margin:0 0 20px;opacity:.85;font-size:15px}
+.menuBtn{display:block;width:100%;margin:10px 0;padding:15px;border-radius:14px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;font-size:20px;font-weight:800}
+.menuBtn.primary{background:#c9a227;border-color:#ffe08a;color:#201700}
+.menuBtn:active{transform:scale(.98)}
+#menuInfo{margin:12px 0 4px;font-size:14px;opacity:.85;min-height:18px}
+.menuCredits{margin-top:14px;font-size:12px;opacity:.6;line-height:1.5}
+body.mode-menu #touchControls,body.mode-menu #cross{display:none!important}
+@media (pointer:coarse){#tutorial{bottom:240px;width:min(320px,62vw)}}
+@media (pointer:coarse) and (orientation:landscape){#tutorial{bottom:12px;right:130px;width:min(44vw,340px);font-size:13px}}

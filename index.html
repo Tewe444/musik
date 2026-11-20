@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Trening</title>
+    <!-- Tailwind CSS für ein klares, responsives Layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter für durchgängig einheitliche, nicht-kursive Typografie -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        pureblack: '#000000',
+                        neutralbright: '#F5F5F7',
+                        neutraldim: '#8E8E93',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Reiner Schwarzmodus (#000000) ohne Scrollen der gesamten Seite */
+        html, body {
+            background-color: #000000;
+            color: #F5F5F7;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-style: normal;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Fest stehender, einheitlicher Titel oben:
+           Position wird kontinuierlich per requestAnimationFrame und zeitabhängigem lerp gesteuert */
+        .sticky-header {
+            position: fixed;
+            top: 22dvh;
+            left: 0;
+            right: 0;
+            z-index: 30;
+            padding-bottom: 0.75rem;
+            pointer-events: none;
+            font-style: normal;
+            will-change: top;
+        }
+
+        /* Isolierter Scroll-Bereich nur für die Trainingskarten:
+           - blendet oben früher aus, damit Karten nicht hinter dem Titel liegen bleiben
+           - blendet unten später und sanfter aus */
+        .training-scroll-area {
+            height: 100dvh;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: #222226 transparent;
+            -webkit-mask-image: linear-gradient(
+                to bottom,
+                transparent 0%,
+                transparent 25%,
+                black 34%,
+                black 78%,
+                transparent 97%
+            );
+            mask-image: linear-gradient(
+                to bottom,
+                transparent 0%,
+                transparent 25%,
+                black 34%,
+                black 78%,
+                transparent 97%
+            );
+        }
+
+        .training-scroll-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .training-scroll-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .training-scroll-area::-webkit-scrollbar-thumb {
+            background-color: #222226;
+            border-radius: 9999px;
+        }
+
+        .training-scroll-area::-webkit-scrollbar-thumb:hover {
+            background-color: #34343A;
+        }
+
+        /* Einheitlicher neutraler Farbton auf allen Karten ohne Farbversatz */
+        .selection-card {
+            background-color: #0A0A0C;
+            border: 1px solid #1C1C20;
+            transform-origin: center center;
+            will-change: transform, opacity;
+            transition: border-color 0.24s ease, background-color 0.24s ease;
+        }
+
+        .selection-card:hover,
+        .selection-card:focus-visible {
+            border-color: rgba(245, 245, 247, 0.28);
+            background-color: #0E0E11;
+        }
+
+        .card-title-text {
+            color: #F5F5F7;
+            font-style: normal;
+        }
+
+        .card-subtitle-text {
+            color: #9A9AA0;
+            font-style: normal;
+        }
+
+        .card-arrow-text {
+            color: #8E8E93;
+            font-style: normal;
+        }
+    </style>
+</head>
+<body class="bg-pureblack text-neutralbright relative">
+
+    <!-- Fest stehender, einheitlicher Header ("Music Trening") -->
+    <header id="mainHeader" class="sticky-header text-center px-6">
+        <h1 class="text-3xl sm:text-4xl font-light tracking-tight text-white not-italic">
+            Music Trening
+        </h1>
+    </header>
+
+    <!-- Isolierter Scroll-Bereich nur für die Trainingskarten -->
+    <!-- Großzügiges oberes und unteres Padding (~38vh), damit ganz oben die erste Karte
+         und ganz unten die letzte Karte jeweils zentriert und voll hell dargestellt werden -->
+    <main id="trainingScrollArea" class="training-scroll-area relative z-10 w-full px-6">
+        <div class="min-h-full flex flex-col items-center pt-[38vh] pb-[38vh]">
+            <!-- Container für Trainingskarten oder Leerhinweis -->
+            <div id="hubContainer" class="w-full max-w-sm flex flex-col gap-3.5">
+                <!-- Einträge werden dynamisch erzeugt -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        /**
+         * Hier einfach eigene Trainings-Ordner und Unterschriften eintragen.
+         * Beispiel:
+         * {
+         *   title: "Akkorde",
+         *   subtitle: "Dreiklänge und Umkehrungen erkennen",
+         *   href: "./Akkorde/"
+         * }
+         * Ist MAIN_ITEMS leer ([]), wird kein Beispiel angezeigt, sondern nur
+         * die minimale Nachricht "Noch keine Trainings eingetragen.".
+         */
+        const MAIN_ITEMS = [
+            {
+                title: "Noten-Raum",
+                subtitle: "______",
+                href: "./Noten-Raum/"
+            },
+            {
+                title: "s",
+                subtitle: "erkenne Intervalle",
+                href: "./Intervall-Training/"
+            }
+        ];
+
+        // Zielhöhen des Headers in dvh
+        const DEFAULT_HEADER_DVH = 22.0;
+        const TOP_HEADER_DVH = 2.5;
+
+        // Animationszustand für richtungsunabhängige, zeitbasierte Interpolation (lerp)
+        let currentHeaderDvh = DEFAULT_HEADER_DVH;
+        let firstCardElement = null;
+        let lastFrameTime = null;
+        let animationFrameId = null;
+
+        /**
+         * Erzeugt eine minimalistische Trainingskarte ohne Logo oder Icon.
+         */
+        function createTrainingCard(item) {
+            const link = document.createElement("a");
+            link.href = item.href;
+            link.className = "selection-card group block w-full rounded-2xl px-6 py-5 focus:outline-none";
+
+            const row = document.createElement("div");
+            row.className = "flex items-center justify-between gap-4";
+
+            const textBlock = document.createElement("div");
+            textBlock.className = "min-w-0 flex-1";
+
+            const titleSpan = document.createElement("span");
+            titleSpan.className = "card-title-text block text-base font-normal tracking-tight truncate";
+            titleSpan.textContent = item.title || "";
+            textBlock.appendChild(titleSpan);
+
+            if (item.subtitle) {
+                const subtitleSpan = document.createElement("span");
+                subtitleSpan.className = "card-subtitle-text block text-xs mt-1 truncate";
+                subtitleSpan.textContent = item.subtitle;
+                textBlock.appendChild(subtitleSpan);
+            }
+
+            const arrowSpan = document.createElement("span");
+            arrowSpan.className = "card-arrow-text group-hover:translate-x-1 transition-transform duration-200 text-sm shrink-0";
+            arrowSpan.setAttribute("aria-hidden", "true");
+            arrowSpan.textContent = "→";
+
+            row.appendChild(textBlock);
+            row.appendChild(arrowSpan);
+            link.appendChild(row);
+
+            return link;
+        }
+
+        /**
+         * Zeigt eine schlichte, minimale Leeransicht an, wenn MAIN_ITEMS leer ist.
+         */
+        function createEmptyStateMessage() {
+            const emptyBox = document.createElement("div");
+            emptyBox.className = "w-full rounded-2xl border border-[#1C1C20] bg-[#0A0A0C] px-6 py-8 text-center";
+
+            const text = document.createElement("p");
+            text.className = "card-subtitle-text text-sm font-normal tracking-tight";
+            text.textContent = "Noch keine Trainings eingetragen.";
+
+            emptyBox.appendChild(text);
+            return emptyBox;
+        }
+
+        /**
+         * Berechnet in jedem Animationsframe:
+         * 1. Fokus-Skalierung (bis ~0.85) und gleichmäßige Helligkeitsabstufung ohne Farbversatz.
+         *    Ganz oben (scrollTop === 0) leuchtet die erste Karte voll hell,
+         *    ganz unten (scrollTop am Anschlag) leuchtet die letzte Karte voll hell.
+         * 2. Kontinuierliche Header-Position über zeitbasiertes lerp in beide Scroll-Richtungen.
+         */
+        function updateFrame(now) {
+            try {
+                if (lastFrameTime === null) {
+                    lastFrameTime = now;
+                }
+                const dtSeconds = Math.min((now - lastFrameTime) / 1000, 0.05);
+                lastFrameTime = now;
+
+                const scrollArea = document.getElementById("trainingScrollArea");
+                const header = document.getElementById("mainHeader");
+
+                if (scrollArea && header) {
+                    const areaRect = scrollArea.getBoundingClientRect();
+                    const areaHeight = Math.max(areaRect.height, 1);
+                    const areaCenterY = areaRect.top + areaHeight * 0.5;
+
+                    const maxScrollTop = Math.max(scrollArea.scrollHeight - scrollArea.clientHeight, 0);
+                    const isAtVeryTop = scrollArea.scrollTop <= 2;
+                    const isAtVeryBottom = maxScrollTop > 0 && scrollArea.scrollTop >= maxScrollTop - 2;
+
+                    const upwardRange = Math.max(areaHeight * 0.25, 110);
+                    const downwardRange = Math.max(areaHeight * 0.44, 190);
+
+                    const cards = scrollArea.querySelectorAll(".selection-card");
+                    const lastCardIndex = cards.length - 1;
+
+                    cards.forEach((card, index) => {
+                        if (isAtVeryTop && index === 0) {
+                            card.style.transform = "scale(1)";
+                            card.style.opacity = "1";
+                            return;
+                        }
+
+                        if (isAtVeryBottom && index === lastCardIndex) {
+                            card.style.transform = "scale(1)";
+                            card.style.opacity = "1";
+                            return;
+                        }
+
+                        const rect = card.getBoundingClientRect();
+                        const cardCenterY = rect.top + rect.height * 0.5;
+                        const deltaY = cardCenterY - areaCenterY;
+
+                        let scale = 1;
+                        let opacity = 1;
+
+                        if (deltaY < 0) {
+                            // Oberhalb der Mitte: zügiger verkleinern (bis ~0.85) und gleichmäßig abdunkeln
+                            const tUp = Math.min(Math.abs(deltaY) / upwardRange, 1);
+                            const easedUp = Math.pow(tUp, 0.82);
+                            scale = 1 - easedUp * 0.15;
+                            opacity = Math.max(0.05, 1 - easedUp * 0.92);
+                        } else {
+                            // Unterhalb der Mitte: weich und gleichmäßig abdunkeln und bis ~0.85 verkleinern
+                            const tDown = Math.min(deltaY / downwardRange, 1);
+                            const easedDown = Math.pow(tDown, 0.95);
+                            scale = 1 - easedDown * 0.15;
+                            opacity = Math.max(0.24, 1 - easedDown * 0.70);
+                        }
+
+                        card.style.transform = `scale(${scale.toFixed(4)})`;
+                        card.style.opacity = opacity.toFixed(4);
+                    });
+
+                    // Zielposition des Headers anhand der ersten Karte bestimmen
+                    let targetHeaderDvh = DEFAULT_HEADER_DVH;
+
+                    if (firstCardElement && !isAtVeryTop) {
+                        const firstRect = firstCardElement.getBoundingClientRect();
+                        const vanishThresholdY = areaRect.top + areaHeight * 0.27;
+                        const transitionSpanPx = Math.max(areaHeight * 0.12, 56);
+
+                        const rawRatio = (vanishThresholdY - firstRect.bottom) / transitionSpanPx;
+                        const ratio = Math.max(0, Math.min(1, rawRatio));
+                        const smoothRatio = ratio * ratio * (3 - 2 * ratio);
+
+                        targetHeaderDvh = DEFAULT_HEADER_DVH - smoothRatio * (DEFAULT_HEADER_DVH - TOP_HEADER_DVH);
+                    } else {
+                        targetHeaderDvh = DEFAULT_HEADER_DVH;
+                    }
+
+                    // Zeitabhängige, richtungsunabhängige Interpolation (lerp)
+                    const lerpFactor = 1 - Math.exp(-14 * dtSeconds);
+                    currentHeaderDvh += (targetHeaderDvh - currentHeaderDvh) * lerpFactor;
+
+                    if (Math.abs(targetHeaderDvh - currentHeaderDvh) < 0.002) {
+                        currentHeaderDvh = targetHeaderDvh;
+                    }
+
+                    header.style.top = `${currentHeaderDvh.toFixed(3)}dvh`;
+                }
+            } catch (error) {
+                console.error("Fehler beim Aktualisieren der Scroll- und Header-Animation:", error);
+            }
+
+            animationFrameId = window.requestAnimationFrame(updateFrame);
+        }
+
+        /**
+         * Initialisiert die Ansicht aus MAIN_ITEMS und startet die Animationsschleife.
+         */
+        function initMusicTrening() {
+            try {
+                const container = document.getElementById("hubContainer");
+                if (!container) return;
+
+                container.innerHTML = "";
+                firstCardElement = null;
+
+                const items = Array.isArray(MAIN_ITEMS) ? MAIN_ITEMS : [];
+
+                if (items.length === 0) {
+                    container.appendChild(createEmptyStateMessage());
+                } else {
+                    items.forEach((item, index) => {
+                        const card = createTrainingCard(item);
+                        if (index === 0) {
+                            firstCardElement = card;
+                        }
+                        container.appendChild(card);
+                    });
+                }
+
+                currentHeaderDvh = DEFAULT_HEADER_DVH;
+                lastFrameTime = null;
+
+                if (animationFrameId !== null) {
+                    window.cancelAnimationFrame(animationFrameId);
+                }
+                animationFrameId = window.requestAnimationFrame(updateFrame);
+            } catch (error) {
+                console.error("Fehler beim Initialisieren von Music Trening:", error);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", initMusicTrening);
+    </script>
+</body>
+</html>
